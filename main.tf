@@ -223,7 +223,6 @@ resource "aws_db_instance" "mysql" {
   db_subnet_group_name    = aws_db_subnet_group.db_subnet.name
   vpc_security_group_ids  = [aws_security_group.rds_sg.id]
   skip_final_snapshot     = true
-  availability_zone       = "us-east-1a"  # Puedes mantener una sola AZ aquí
   publicly_accessible     = false
   engine_version          = "5.7.mysql_aurora.2.07.1"
   tags = { Name = "AvanceDB" }
