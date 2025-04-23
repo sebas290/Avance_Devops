@@ -79,7 +79,7 @@ resource "aws_security_group" "web_sg" {
 
 resource "aws_security_group" "jump_sg" {
   name        = "jump_sg"
-  description = "Permite acceso RDP al Jump Server"
+  description = "Permite acceso RDP"
   vpc_id      = aws_vpc.mi_vpc.id
 
   ingress {
