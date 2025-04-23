@@ -2,99 +2,62 @@ provider "aws" {
   region = "us-east-1"
 }
 
-resource "aws_vpc" "main" {
-  cidr_block = "10.10.0.0/20"
-  enable_dns_support = true
-  enable_dns_hostnames = true
-  tags = { Name = "ProyectoVPC" }
+resource "aws_vpc" "mi_vpc" {
+  cidr_block = "10.10.0.0/16"
+  tags = { Name = "mi_vpc" }
 }
 
-# Subred pública
-resource "aws_subnet" "public_subnet" {
-  vpc_id                   = aws_vpc.main.id
-  cidr_block               = "10.10.0.0/24"  # Ajustado
-  map_public_ip_on_launch  = true
-  availability_zone        = "us-east-1a"
-  tags = { Name = "PublicSubnet" }
+resource "aws_subnet" "publica" {
+  vpc_id                  = aws_vpc.mi_vpc.id
+  cidr_block              = "10.10.0.0/24"
+  map_public_ip_on_launch = true
+  availability_zone       = "us-east-1a"
+  tags = { Name = "subred_publica" }
 }
 
-# Subred privada 1
-resource "aws_subnet" "private_subnet_1" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.10.1.0/24"  # Ajustado
+resource "aws_subnet" "privada" {
+  vpc_id            = aws_vpc.mi_vpc.id
+  cidr_block        = "10.10.1.0/24"
   availability_zone = "us-east-1a"
-  tags = { Name = "PrivateSubnet1" }
+  tags = { Name = "subred_privada" }
 }
 
-# Subred privada 2
-resource "aws_subnet" "private_subnet_2" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.10.2.0/24"  # Ajustado
-  availability_zone = "us-east-1b"  # Segunda AZ
-  tags = { Name = "PrivateSubnet2" }
+resource "aws_internet_gateway" "gw" {
+  vpc_id = aws_vpc.mi_vpc.id
+  tags = { Name = "internet_gw" }
 }
 
-# Internet Gateway
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
-  tags = { Name = "IGW" }
-}
-
-# Tabla de rutas pública
-resource "aws_route_table" "public_rt" {
-  vpc_id = aws_vpc.main.id
+resource "aws_route_table" "rt" {
+  vpc_id = aws_vpc.mi_vpc.id
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
+    gateway_id = aws_internet_gateway.gw.id
   }
-  tags = { Name = "PublicRouteTable" }
+  tags = { Name = "rt_publica" }
 }
 
-# Asociación de tabla de rutas con la subred pública
-resource "aws_route_table_association" "public_assoc" {
-  subnet_id      = aws_subnet.public_subnet.id
-  route_table_id = aws_route_table.public_rt.id
+resource "aws_route_table_association" "a" {
+  subnet_id      = aws_subnet.publica.id
+  route_table_id = aws_route_table.rt.id
 }
 
-# Seguridad para Jump Server
-resource "aws_security_group" "jump_sg" {
-  name        = "jump_sg"
-  description = "Security group for Jump Server"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    from_port   = 3389
-    to_port     = 3389
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# Seguridad para Web Server
 resource "aws_security_group" "web_sg" {
   name        = "web_sg"
-  description = "Security group for Web Server"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    from_port       = 22
-    to_port         = 22
-    protocol        = "tcp"
-    security_groups = [aws_security_group.jump_sg.id]  
-  }
+  description = "Permite HTTP y SSH"
+  vpc_id      = aws_vpc.mi_vpc.id
 
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] 
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["10.10.0.0/16"]
   }
 
   egress {
@@ -103,13 +66,14 @@ resource "aws_security_group" "web_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = { Name = "web_sg" }
 }
 
-# Seguridad para RDS
 resource "aws_security_group" "rds_sg" {
-  name        = "RDSSG"
-  description = "Access from WebServer"
-  vpc_id      = aws_vpc.main.id
+  name        = "rds_sg"
+  description = "Permite acceso desde web_sg"
+  vpc_id      = aws_vpc.mi_vpc.id
 
   ingress {
     from_port       = 3306
@@ -124,27 +88,44 @@ resource "aws_security_group" "rds_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = { Name = "rds_sg" }
 }
 
-# Instancia Jump Server
-resource "aws_instance" "jump_server" {
-  ami                         = "ami-0c765d44cf1f25d26"
-  instance_type               = "t2.micro"
-  subnet_id                   = aws_subnet.public_subnet.id
-  associate_public_ip_address = true
-  key_name                    = "labsuser"
-  vpc_security_group_ids      = [aws_security_group.jump_sg.id]
-  tags = { Name = "JumpServer" }
+resource "aws_db_subnet_group" "db_subnet" {
+  name       = "db_subnet_group"
+  subnet_ids = [aws_subnet.privada.id]
+  tags = { Name = "db_subnet" }
 }
 
-# Instancia Web Server
-resource "aws_instance" "web_server" {
-  ami                         = "ami-0e449927258d45bc4"
-  instance_type               = "t2.micro"
-  subnet_id                   = aws_subnet.public_subnet.id
-  associate_public_ip_address = true
-  key_name                    = "labsuser"
-  vpc_security_group_ids      = [aws_security_group.web_sg.id]
+resource "aws_rds_cluster" "aurora_cluster" {
+  cluster_identifier      = "avance-db-cluster"
+  engine                  = "aurora-mysql"
+  engine_version          = "8.0.mysql_aurora.3.05.2"
+  database_name           = "Avance"
+  master_username         = "Sebas"
+  master_password         = "Devops"
+  db_subnet_group_name    = aws_db_subnet_group.db_subnet.name
+  vpc_security_group_ids  = [aws_security_group.rds_sg.id]
+  skip_final_snapshot     = true
+  tags = { Name = "AvanceAuroraCluster" }
+}
+
+resource "aws_rds_cluster_instance" "aurora_instance" {
+  identifier         = "avance-db-instance"
+  cluster_identifier = aws_rds_cluster.aurora_cluster.id
+  instance_class     = "db.t3.medium"
+  engine             = "aurora-mysql"
+  publicly_accessible = false
+  tags = { Name = "AuroraInstance" }
+}
+
+resource "aws_instance" "web" {
+  ami           = "ami-084568db4383264d4"
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.publica.id
+  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  key_name = "labuser"
 
   user_data = <<-EOF
               #!/bin/bash
@@ -158,7 +139,7 @@ resource "aws_instance" "web_server" {
               app = Flask(__name__)
               
               db = MySQLdb.connect(
-                  host="${aws_db_instance.mysql.endpoint}",
+                  host="${aws_rds_cluster.aurora_cluster.endpoint}",
                   user="Sebas",
                   passwd="Devops",
                   db="Avance"
@@ -210,31 +191,8 @@ resource "aws_instance" "web_server" {
               );
               EOMYSQL
 
-              mysql -h ${aws_db_instance.mysql.endpoint} -u Sebas -pDevops < /home/ubuntu/init.sql
+              mysql -h ${aws_rds_cluster.aurora_cluster.endpoint} -u Sebas -pDevops < /home/ubuntu/init.sql
               EOF
 
   tags = { Name = "WebServer" }
-}
-
-# Grupo de subredes para RDS
-resource "aws_db_subnet_group" "db_subnet" {
-  name       = "rds-subnet"
-  subnet_ids = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
-  tags = { Name = "DBSubnetGroup" }
-}
-
-# Instancia RDS
-resource "aws_db_instance" "mysql" {
-  identifier              = "avance-db"
-  engine                  = "aurora-mysql"
-  instance_class          = "db.t3.medium"
-  allocated_storage       = 20
-  username                = "Sebas"
-  password                = "Devops"
-  db_subnet_group_name    = aws_db_subnet_group.db_subnet.name
-  vpc_security_group_ids  = [aws_security_group.rds_sg.id]
-  skip_final_snapshot     = true
-  publicly_accessible     = false
-  engine_version          = "5.7.mysql_aurora.2.07.1"
-  tags = { Name = "AvanceDB" }
 }
