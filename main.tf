@@ -135,7 +135,7 @@ resource "aws_instance" "jump_server" {
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.publica.id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
-  key_name = "labuser"
+  key_name = "labsuser"
   tags = { Name = "JumpServer" }
 }
 
@@ -144,7 +144,7 @@ resource "aws_instance" "web_server" {
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.publica.id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
-  key_name = "labuser"
+  key_name = "labsuser"
 
   user_data = <<-EOF
               #!/bin/bash
