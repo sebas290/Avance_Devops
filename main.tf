@@ -130,12 +130,24 @@ resource "aws_rds_cluster_instance" "aurora_instance" {
   tags = { Name = "AuroraInstance" }
 }
 
-resource "aws_instance" "web" {
-  ami           = "ami-084568db4383264d4"
+# Crear un Jump Server (Windows)
+resource "aws_instance" "jump_server" {
+  ami           = "ami-0c765d44cf1f25d26"  # AMI de Windows Server
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.publica.id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
-  key_name = "labuser"
+  key_name = "labuser"  # Nombre de la clave SSH
+
+  tags = { Name = "JumpServer" }
+}
+
+# Crear un Web Server (Linux)
+resource "aws_instance" "web_server" {
+  ami           = "ami-084568db4383264d4"  # AMI de Linux
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.publica.id
+  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  key_name = "labuser"  # Nombre de la clave SSH
 
   user_data = <<-EOF
               #!/bin/bash
@@ -151,7 +163,7 @@ resource "aws_instance" "web" {
               db = MySQLdb.connect(
                   host="${aws_rds_cluster.aurora_cluster.endpoint}",
                   user="Sebas",
-                  passwd="Devops",
+                  passwd="Devops123",
                   db="Avance"
               )
               
