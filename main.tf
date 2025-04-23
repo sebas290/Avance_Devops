@@ -77,6 +77,28 @@ resource "aws_security_group" "web_sg" {
   tags = { Name = "web_sg" }
 }
 
+resource "aws_security_group" "jump_sg" {
+  name        = "jump_sg"
+  description = "Permite acceso RDP al Jump Server"
+  vpc_id      = aws_vpc.mi_vpc.id
+
+  ingress {
+    from_port   = 3389
+    to_port     = 3389
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # Cambia por tu IP real si deseas restringir el acceso
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = { Name = "jump_sg" }
+}
+
 resource "aws_security_group" "rds_sg" {
   name        = "rds_sg"
   description = "Permite acceso desde web_sg"
@@ -134,8 +156,8 @@ resource "aws_instance" "jump_server" {
   ami           = "ami-0c765d44cf1f25d26"
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.publica.id
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
-  key_name = "labsuser"
+  vpc_security_group_ids = [aws_security_group.jump_sg.id]
+  key_name = "vockey"
   tags = { Name = "JumpServer" }
 }
 
@@ -144,7 +166,7 @@ resource "aws_instance" "web_server" {
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.publica.id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
-  key_name = "labsuser"
+  key_name = "vockey"
 
   user_data = <<-EOF
               #!/bin/bash
