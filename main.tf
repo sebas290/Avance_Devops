@@ -100,7 +100,7 @@ resource "aws_security_group" "rds_sg" {
 }
 
 resource "aws_db_subnet_group" "db_subnet" {
-  name       = "db_subnet_group"
+  name       = "db_subnet_group_avance"
   subnet_ids = [
     aws_subnet.privada_1.id,
     aws_subnet.privada_2.id
@@ -130,24 +130,21 @@ resource "aws_rds_cluster_instance" "aurora_instance" {
   tags = { Name = "AuroraInstance" }
 }
 
-# Crear un Jump Server (Windows)
 resource "aws_instance" "jump_server" {
-  ami           = "ami-0c765d44cf1f25d26"  # AMI de Windows Server
+  ami           = "ami-0c765d44cf1f25d26"
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.publica.id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
-  key_name = "labuser"  # Nombre de la clave SSH
-
+  key_name = "labuser"
   tags = { Name = "JumpServer" }
 }
 
-# Crear un Web Server (Linux)
 resource "aws_instance" "web_server" {
-  ami           = "ami-084568db4383264d4"  # AMI de Linux
+  ami           = "ami-084568db4383264d4"
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.publica.id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
-  key_name = "labuser"  # Nombre de la clave SSH
+  key_name = "labuser"
 
   user_data = <<-EOF
               #!/bin/bash
