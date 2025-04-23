@@ -114,7 +114,7 @@ resource "aws_rds_cluster" "aurora_cluster" {
   engine_version          = "8.0.mysql_aurora.3.05.2"
   database_name           = "Avance"
   master_username         = "Sebas"
-  master_password         = "Devops"
+  master_password         = "Devops1234"
   db_subnet_group_name    = aws_db_subnet_group.db_subnet.name
   vpc_security_group_ids  = [aws_security_group.rds_sg.id]
   skip_final_snapshot     = true
