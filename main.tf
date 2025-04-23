@@ -15,11 +15,18 @@ resource "aws_subnet" "publica" {
   tags = { Name = "subred_publica" }
 }
 
-resource "aws_subnet" "privada" {
+resource "aws_subnet" "privada_1" {
   vpc_id            = aws_vpc.mi_vpc.id
   cidr_block        = "10.10.1.0/24"
   availability_zone = "us-east-1a"
-  tags = { Name = "subred_privada" }
+  tags = { Name = "subred_privada_1" }
+}
+
+resource "aws_subnet" "privada_2" {
+  vpc_id            = aws_vpc.mi_vpc.id
+  cidr_block        = "10.10.2.0/24"
+  availability_zone = "us-east-1b"
+  tags = { Name = "subred_privada_2" }
 }
 
 resource "aws_internet_gateway" "gw" {
@@ -94,7 +101,10 @@ resource "aws_security_group" "rds_sg" {
 
 resource "aws_db_subnet_group" "db_subnet" {
   name       = "db_subnet_group"
-  subnet_ids = [aws_subnet.privada.id]
+  subnet_ids = [
+    aws_subnet.privada_1.id,
+    aws_subnet.privada_2.id
+  ]
   tags = { Name = "db_subnet" }
 }
 
