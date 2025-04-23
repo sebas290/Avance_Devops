@@ -1,4 +1,3 @@
-
 provider "aws" {
   region = "us-east-1"
 }
@@ -18,11 +17,18 @@ resource "aws_subnet" "public_subnet" {
   tags = { Name = "PublicSubnet" }
 }
 
-resource "aws_subnet" "private_subnet" {
+resource "aws_subnet" "private_subnet_1" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.10.1.0/24"
   availability_zone = "us-east-1a"
-  tags = { Name = "PrivateSubnet" }
+  tags = { Name = "PrivateSubnet1" }
+}
+
+resource "aws_subnet" "private_subnet_2" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.10.2.0/24"
+  availability_zone = "us-east-1b"  # Segunda AZ
+  tags = { Name = "PrivateSubnet2" }
 }
 
 resource "aws_internet_gateway" "igw" {
@@ -54,7 +60,7 @@ resource "aws_security_group" "jump_sg" {
     from_port   = 3389
     to_port     = 3389
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # Permitir RDP desde cualquier IP (o mejor: limitar a tu IP)
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -203,7 +209,7 @@ resource "aws_instance" "web_server" {
 
 resource "aws_db_subnet_group" "db_subnet" {
   name       = "rds-subnet"
-  subnet_ids = [aws_subnet.private_subnet.id]
+  subnet_ids = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]  # Incluye las dos subredes privadas
   tags = { Name = "DBSubnetGroup" }
 }
 
@@ -217,7 +223,7 @@ resource "aws_db_instance" "mysql" {
   db_subnet_group_name    = aws_db_subnet_group.db_subnet.name
   vpc_security_group_ids  = [aws_security_group.rds_sg.id]
   skip_final_snapshot     = true
-  availability_zone       = "us-east-1a"
+  availability_zone       = "us-east-1a"  # Puedes mantener una sola AZ aquí
   publicly_accessible     = false
   engine_version          = "5.7.mysql_aurora.2.07.1"
   tags = { Name = "AvanceDB" }
