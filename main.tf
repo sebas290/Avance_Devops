@@ -9,33 +9,38 @@ resource "aws_vpc" "main" {
   tags = { Name = "ProyectoVPC" }
 }
 
+# Subred pública
 resource "aws_subnet" "public_subnet" {
   vpc_id                   = aws_vpc.main.id
-  cidr_block               = "10.10.0.0/24"
+  cidr_block               = "10.10.0.0/24"  # Ajustado
   map_public_ip_on_launch  = true
   availability_zone        = "us-east-1a"
   tags = { Name = "PublicSubnet" }
 }
 
+# Subred privada 1
 resource "aws_subnet" "private_subnet_1" {
   vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.10.1.0/24"
+  cidr_block        = "10.10.1.0/24"  # Ajustado
   availability_zone = "us-east-1a"
   tags = { Name = "PrivateSubnet1" }
 }
 
+# Subred privada 2
 resource "aws_subnet" "private_subnet_2" {
   vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.10.2.0/24"
+  cidr_block        = "10.10.2.0/24"  # Ajustado
   availability_zone = "us-east-1b"  # Segunda AZ
   tags = { Name = "PrivateSubnet2" }
 }
 
+# Internet Gateway
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
   tags = { Name = "IGW" }
 }
 
+# Tabla de rutas pública
 resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.main.id
   route {
@@ -45,12 +50,13 @@ resource "aws_route_table" "public_rt" {
   tags = { Name = "PublicRouteTable" }
 }
 
+# Asociación de tabla de rutas con la subred pública
 resource "aws_route_table_association" "public_assoc" {
   subnet_id      = aws_subnet.public_subnet.id
   route_table_id = aws_route_table.public_rt.id
 }
 
-# Jump Server SG
+# Seguridad para Jump Server
 resource "aws_security_group" "jump_sg" {
   name        = "jump_sg"
   description = "Security group for Jump Server"
@@ -71,7 +77,7 @@ resource "aws_security_group" "jump_sg" {
   }
 }
 
-# Web Server SG
+# Seguridad para Web Server
 resource "aws_security_group" "web_sg" {
   name        = "web_sg"
   description = "Security group for Web Server"
@@ -99,6 +105,7 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
+# Seguridad para RDS
 resource "aws_security_group" "rds_sg" {
   name        = "RDSSG"
   description = "Access from WebServer"
@@ -119,6 +126,7 @@ resource "aws_security_group" "rds_sg" {
   }
 }
 
+# Instancia Jump Server
 resource "aws_instance" "jump_server" {
   ami                         = "ami-0c765d44cf1f25d26"
   instance_type               = "t2.micro"
@@ -129,6 +137,7 @@ resource "aws_instance" "jump_server" {
   tags = { Name = "JumpServer" }
 }
 
+# Instancia Web Server
 resource "aws_instance" "web_server" {
   ami                         = "ami-0e449927258d45bc4"
   instance_type               = "t2.micro"
@@ -207,12 +216,14 @@ resource "aws_instance" "web_server" {
   tags = { Name = "WebServer" }
 }
 
+# Grupo de subredes para RDS
 resource "aws_db_subnet_group" "db_subnet" {
   name       = "rds-subnet"
-  subnet_ids = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]  # Incluye las dos subredes privadas
+  subnet_ids = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
   tags = { Name = "DBSubnetGroup" }
 }
 
+# Instancia RDS
 resource "aws_db_instance" "mysql" {
   identifier              = "avance-db"
   engine                  = "aurora-mysql"
