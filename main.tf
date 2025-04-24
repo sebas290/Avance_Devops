@@ -176,23 +176,25 @@ resource "aws_instance" "web_server" {
 
               cat <<EOPYTHON > /home/ubuntu/app.py
               from flask import Flask, request, jsonify
-              import MySQLdb
+              import pymysql
+              pymysql.install_as_MySQLdb()
+
               app = Flask(__name__)
-              
-              db = MySQLdb.connect(
-                  host="${aws_rds_cluster.aurora_cluster.endpoint}",
+
+              db = pymysql.connect(
+                  host="avance-db-cluster.cluster-chpuip2ijhn7.us-east-1.rds.amazonaws.com",
                   user="Sebas",
                   passwd="Devops123",
                   db="Avance"
               )
-              
+
               @app.route("/productos", methods=["GET"])
               def obtener():
                   cursor = db.cursor()
                   cursor.execute("SELECT * FROM productos")
                   rows = cursor.fetchall()
                   return jsonify(rows)
-              
+
               @app.route("/productos", methods=["POST"])
               def insertar():
                   data = request.get_json()
@@ -201,14 +203,14 @@ resource "aws_instance" "web_server" {
                       (data["nombre"], data["precio"], data["imagen"], data["cantidad"]))
                   db.commit()
                   return jsonify({"mensaje": "Insertado"})
-              
+
               @app.route("/productos/<int:id>", methods=["DELETE"])
               def eliminar(id):
                   cursor = db.cursor()
                   cursor.execute("DELETE FROM productos WHERE id = %s", (id,))
                   db.commit()
                   return jsonify({"mensaje": "Eliminado"})
-              
+
               @app.route("/comprar/<int:id>", methods=["POST"])
               def comprar(id):
                   cursor = db.cursor()
@@ -218,6 +220,7 @@ resource "aws_instance" "web_server" {
 
               if __name__ == "__main__":
                   app.run(host="0.0.0.0", port=80)
+
               EOPYTHON
 
               cat <<EOMYSQL > /home/ubuntu/init.sql
