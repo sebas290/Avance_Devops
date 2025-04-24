@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Productos</title>
+</head>
+<body>
+    <h1>Lista de Productos</h1>
+    <table border="1">
+        <tr>
+            <th>ID</th><th>Nombre</th><th>Precio</th><th>Imagen</th><th>Cantidad</th><th>Acciones</th>
+        </tr>
+        {% for p in productos %}
+        <tr>
+            <td>{{ p[0] }}</td>
+            <td>{{ p[1] }}</td>
+            <td>{{ p[2] }}</td>
+            <td><img src="{{ p[3] }}" width="100"/></td>
+            <td>{{ p[4] }}</td>
+            <td>
+                <form method="post" action="/comprar/{{ p[0] }}" style="display:inline;">
+                    <button type="submit">Comprar</button>
+                </form>
+                <form method="post" action="/eliminar/{{ p[0] }}" style="display:inline;">
+                    <button type="submit">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Agregar Producto</h2>
+    <form method="post" action="/productos">
+        <input type="text" name="nombre" placeholder="Nombre" required>
+        <input type="number" name="precio" placeholder="Precio" required>
+        <input type="text" name="imagen" placeholder="URL Imagen" required>
+        <input type="number" name="cantidad" placeholder="Cantidad" required>
+        <button type="submit">Agregar</button>
+    </form>
+</body>
+</html>
