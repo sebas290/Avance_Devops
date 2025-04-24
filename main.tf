@@ -174,19 +174,25 @@ resource "aws_instance" "web_server" {
               apt install -y python3-pip python3-flask mysql-client
               pip3 install flask flask-mysqldb
 
-              cat <<EOPYTHON > /home/ubuntu/app.py
-              from flask import Flask, request, jsonify
+              cat <<EOPYTHON > /home/ubuntu/app.pyfrom 
+              flask import Flask, request, jsonify, render_template, redirect, url_for
               import pymysql
-              pymysql.install_as_MySQLdb()
 
               app = Flask(__name__)
 
               db = pymysql.connect(
                   host="avance-db-cluster.cluster-chpuip2ijhn7.us-east-1.rds.amazonaws.com",
                   user="Sebas",
-                  passwd="Devops123",
+                  passwd="Devops1234",
                   db="Avance"
               )
+
+              @app.route("/")
+              def home():
+                  cursor = db.cursor()
+                  cursor.execute("SELECT * FROM productos")
+                  productos = cursor.fetchall()
+                  return render_template("index.html", productos=productos)
 
               @app.route("/productos", methods=["GET"])
               def obtener():
@@ -197,29 +203,34 @@ resource "aws_instance" "web_server" {
 
               @app.route("/productos", methods=["POST"])
               def insertar():
-                  data = request.get_json()
+                  nombre = request.form["nombre"]
+                  precio = request.form["precio"]
+                  imagen = request.form["imagen"]
+                  cantidad = request.form["cantidad"]
+
                   cursor = db.cursor()
                   cursor.execute("INSERT INTO productos (nombre, precio, imagen, cantidad) VALUES (%s, %s, %s, %s)",
-                      (data["nombre"], data["precio"], data["imagen"], data["cantidad"]))
+                      (nombre, precio, imagen, cantidad))
                   db.commit()
-                  return jsonify({"mensaje": "Insertado"})
+                  return redirect(url_for("home"))
 
-              @app.route("/productos/<int:id>", methods=["DELETE"])
+              @app.route("/eliminar/<int:id>", methods=["POST"])
               def eliminar(id):
                   cursor = db.cursor()
                   cursor.execute("DELETE FROM productos WHERE id = %s", (id,))
                   db.commit()
-                  return jsonify({"mensaje": "Eliminado"})
+                  return redirect(url_for("home"))
 
               @app.route("/comprar/<int:id>", methods=["POST"])
               def comprar(id):
                   cursor = db.cursor()
-                  cursor.execute("UPDATE productos SET cantidad = cantidad - 1 WHERE id = %s", (id,))
+                  cursor.execute("UPDATE productos SET cantidad = cantidad - 1 WHERE id = %s AND cantidad > 0", (id,))
                   db.commit()
-                  return jsonify({"mensaje": "Compra realizada"})
+                  return redirect(url_for("home"))
 
               if __name__ == "__main__":
-                  app.run(host="0.0.0.0", port=80)
+                  app.run(host="0.0.0.0", port=5000)
+
 
               EOPYTHON
 
